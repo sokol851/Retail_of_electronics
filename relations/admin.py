@@ -3,17 +3,6 @@ from django.contrib import admin
 from relations.models import Partner, Contact, Product
 
 
-@admin.register(Partner)
-class PartnerAdmin(admin.ModelAdmin):
-    list_display = (
-        "name",
-        "contact",
-        "supplier",
-        "debt",
-    )
-    list_filter = ('contact__city',)
-
-
 @admin.register(Contact)
 class ContactAdmin(admin.ModelAdmin):
     list_display = (
@@ -25,11 +14,21 @@ class ContactAdmin(admin.ModelAdmin):
     )
 
 
+@admin.register(Partner)
+class PartnerAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "contact",
+        "supplier",
+        "debt",
+    )
+    list_filter = ('contact__city',)
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "model",
         "release_date",
-        "partner",
     )
