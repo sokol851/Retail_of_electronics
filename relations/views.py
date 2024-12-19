@@ -1,8 +1,9 @@
+from rest_framework import viewsets
+from rest_framework.filters import SearchFilter
+
 from employees.permissions import IsActiveAuthenticated
 from relations.models import Partner
 from relations.serializers import PartnerSerializer
-from rest_framework import viewsets
-from rest_framework.filters import SearchFilter
 
 
 class PartnerViewSet(viewsets.ModelViewSet):
@@ -10,4 +11,4 @@ class PartnerViewSet(viewsets.ModelViewSet):
     queryset = Partner.objects.all()
     permission_classes = [IsActiveAuthenticated]
     filter_backends = [SearchFilter]
-    search_fields = ['contact__city', ]
+    search_fields = ['contact__country', ]

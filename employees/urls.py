@@ -2,8 +2,7 @@ from django.urls import path
 from rest_framework.permissions import AllowAny
 
 from employees.apps import EmployeesConfig
-from employees.views import (MyTokenObtainPairView,
-                             MyTokenRefreshView)
+from employees.views import MyTokenObtainPairView, MyTokenRefreshView
 
 app_name = EmployeesConfig.name
 
