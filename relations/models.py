@@ -46,7 +46,7 @@ class Partner(models.Model):
     products = models.ManyToManyField(Product)
 
     def __str__(self):
-        return self.name
+        return f'{self.name} - {self.contact.city}'
 
     class Meta:
         verbose_name = 'Партнёр'
