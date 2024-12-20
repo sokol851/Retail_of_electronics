@@ -21,6 +21,7 @@ class ContactAdmin(admin.ModelAdmin):
 class PartnerAdmin(admin.ModelAdmin):
     list_display = (
         "name",
+        "type_organization",
         "city",
         "contact",
         "supplier_link",

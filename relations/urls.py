@@ -1,6 +1,6 @@
-from apps import RelationsConfig
+from relations.apps import RelationsConfig
 from rest_framework.routers import DefaultRouter
-from views import PartnerViewSet
+from relations.views import PartnerViewSet
 
 app_name = RelationsConfig.name
 
