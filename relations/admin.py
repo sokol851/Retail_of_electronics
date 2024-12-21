@@ -51,10 +51,10 @@ class PartnerAdmin(admin.ModelAdmin):
         """ Задаём кастомное поле города партнёра """
         return obj.contact.city
 
-    # Переименовываем поле города и делаем его доступным для сортировки
+    # Переименовываем столбец города и делаем его доступным для сортировки
     city.allow_tags = True
     city.admin_order_field = 'supplier'
-    city.short_description = 'Город'
+    city.short_description = Contact.city.field.verbose_name
 
     def supplier_link(self, obj):
         """ Создаём ссылку, если есть поставщик """
