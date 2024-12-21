@@ -32,18 +32,29 @@ class Product(models.Model):
 
 
 class Partner(models.Model):
-    name = models.CharField(max_length=150, verbose_name='Название')
+    TYPE_ORGANIZATIONS = {0: 'Завод',
+                          1: 'Розничная сеть',
+                          2: 'ИП'}
+
+    name = models.CharField(max_length=150,
+                            unique=True,
+                            verbose_name='Название')
+    type_organization = models.IntegerField(choices=TYPE_ORGANIZATIONS,
+                                            verbose_name='Тип организации')
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE,
                                 null=True, blank=True,
                                 verbose_name='Контакты')
-    supplier = models.ForeignKey("self", on_delete=models.SET_NULL,
+    supplier = models.ForeignKey("self",
+                                 on_delete=models.SET_NULL,
                                  null=True, blank=True,
                                  verbose_name='Поставщик')
-    debt = models.DecimalField(max_digits=20, decimal_places=2, default=0,
+    debt = models.DecimalField(max_digits=20,
+                               decimal_places=2,
+                               default=0,
                                verbose_name='Задолженность')
     create_at = models.DateTimeField(auto_now_add=True,
                                      verbose_name='Время создания')
-    products = models.ManyToManyField(Product)
+    products = models.ManyToManyField(Product, verbose_name='Продукты')
 
     def __str__(self):
         return f'{self.name} - {self.contact.city}'
