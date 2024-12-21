@@ -46,7 +46,6 @@ class Partner(models.Model):
     type_organization = models.IntegerField(choices=TYPE_ORGANIZATIONS,
                                             verbose_name='Тип организации')
     contact = models.ForeignKey(Contact, on_delete=models.CASCADE,
-                                null=True, blank=True,
                                 verbose_name='Контакты')
     supplier = models.ForeignKey("self",
                                  on_delete=models.SET_NULL,
@@ -64,13 +63,15 @@ class Partner(models.Model):
     def clean(self):
         if self.supplier == self:
             raise ValidationError(
-                'Компания не может быть поставщиком для себя.')
+                'Партнёр не может быть поставщиком для себя.')
         if self.type_organization == 0 and self.supplier is not None:
             raise ValidationError(
                 "У завода не может быть поставщика.")
-        if Partner.objects.filter(name=self.name).exists():
-            raise ValidationError(
-                "Партнёр с таким названием уже зарегистрирован.")
+        # Валидация при создании
+        if self.pk is None:
+            if Partner.objects.filter(name=self.name).exists():
+                raise ValidationError(
+                    "Партнёр с таким названием уже зарегистрирован.")
 
     def __str__(self):
         return f'{self.name} - {self.contact.city}'

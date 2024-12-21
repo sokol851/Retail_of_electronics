@@ -12,17 +12,23 @@ class PartnerViewSet(viewsets.ModelViewSet):
     queryset = Partner.objects.all()
     permission_classes = [IsActiveAuthenticated]
     filter_backends = [SearchFilter]
-    search_fields = ['contact__country', 'name', 'products__name']
+    search_fields = ['contact__country',
+                     'contact__city',
+                     'name',
+                     'products__name']
 
     def destroy(self, *args, **kwargs):
         # Получаем экземпляр партнера
         instance = self.get_object()
-        # Удаляем все связанные продукты
-        products = instance.products.all()
-        for product in products:
-            product.delete()  # Удаляем каждый продукт
-        # Удаляем самого партнера
+        products = list(instance.products.all())
+
+        # Удаляем партнера
         self.perform_destroy(instance)
+
+        # Удаляем продукты, если не связаны с другими партнёрами
+        for product in products:
+            if not product.partner_set.exists():  # Проверяем
+                product.delete()  # Удаляем продукт, если нет связей
 
         # Удаляем контакт, если он не связан с другими партнёрами
         contact = instance.contact

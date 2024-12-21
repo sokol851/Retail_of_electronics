@@ -40,7 +40,8 @@ class ContactSerializer(serializers.ModelSerializer):
 
 class PartnerSerializer(serializers.ModelSerializer):
     contact = ContactSerializer(required=False)
-    products = ProductForPartnerSerializer(many=True, required=False)
+    products = ProductForPartnerSerializer(many=True,
+                                           required=False)
     create_at = serializers.DateTimeField(format="%d.%m.%Y %H:%M",
                                           required=False,
                                           read_only=True)
