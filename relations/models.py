@@ -1,3 +1,7 @@
+from decimal import Decimal
+
+from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 
 NULLABLE = {"null": True, "blank": True}
@@ -51,10 +55,22 @@ class Partner(models.Model):
     debt = models.DecimalField(max_digits=20,
                                decimal_places=2,
                                default=0,
+                               validators=[MinValueValidator(Decimal('0.00'))],
                                verbose_name='Задолженность')
     create_at = models.DateTimeField(auto_now_add=True,
                                      verbose_name='Время создания')
     products = models.ManyToManyField(Product, verbose_name='Продукты')
+
+    def clean(self):
+        if self.supplier == self:
+            raise ValidationError(
+                'Компания не может быть поставщиком для себя.')
+        if self.type_organization == 0 and self.supplier is not None:
+            raise ValidationError(
+                "У завода не может быть поставщика.")
+        if Partner.objects.filter(name=self.name).exists():
+            raise ValidationError(
+                "Партнёр с таким названием уже зарегистрирован.")
 
     def __str__(self):
         return f'{self.name} - {self.contact.city}'
@@ -62,3 +78,4 @@ class Partner(models.Model):
     class Meta:
         verbose_name = 'Партнёр'
         verbose_name_plural = 'Партнёры'
+        ordering = ('name',)
