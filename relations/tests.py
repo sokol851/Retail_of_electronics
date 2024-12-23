@@ -1,6 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from employees.models import Employee
 from relations.models import Contact, Partner, Product
@@ -291,7 +294,7 @@ class PartnerSerializerTests(TestCase):
         update_data = {
             'name': 'Партнёр_upd',
             'type_organization': 1,
-            'products': [{'name': 'Стол',
+            'products': [{'name': 'Столб',
                           'model': 'Светлый',
                           'release_date': '2024-01-05'
                           }],
@@ -334,3 +337,55 @@ class PartnerSerializerTests(TestCase):
 
         self.assertEqual(serializer.errors['supplier'], {
             "supplier": "Партнёр не может быть себе поставщиком."})
+
+    def test_update_zavod_fail(self):
+        self.assertTrue(self.serializer.is_valid())
+        partner = self.serializer.save()
+
+        # Данные для обновления
+        update_data = {
+            'name': 'Партнёр2',
+            'supplier': self.partner2.pk
+        }
+
+        serializer = PartnerSerializer(instance=partner,
+                                       data=update_data)
+        self.assertFalse(serializer.is_valid())
+
+        self.assertIn('supplier', serializer.errors)
+
+        self.assertEqual(serializer.errors['supplier'], {
+            'supplier': "У завода не может быть поставщика."
+        })
+
+
+class IsActiveAuthenticatedTest(APITestCase):
+    """ Тестирование валидатора """
+    def setUp(self):
+        # Создаем пользователей
+        self.active_user = Employee.objects.create(username='active_user',
+                                                   password='123',
+                                                   is_active=True)
+        self.inactive_user = Employee.objects.create(username='inactive_user',
+                                                     password='123',
+                                                     is_active=False)
+
+    @staticmethod
+    def get_token_for_user(user):
+        """Получаем токен для пользователя."""
+        refresh = RefreshToken.for_user(user)
+        return str(refresh.access_token)
+
+    def test_active_authenticated_user_can_access(self):
+        """ Тестируем доступ для активного пользователя """
+        token = self.get_token_for_user(self.active_user)
+        response = self.client.get(reverse('relations:product-list'),
+                                   HTTP_AUTHORIZATION='Bearer ' + token)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_inactive_user_cannot_access(self):
+        """ Тестируем доступ для не активного пользователя """
+        token = self.get_token_for_user(self.inactive_user)
+        response = self.client.get(reverse('relations:product-list'),
+                                   HTTP_AUTHORIZATION='Bearer ' + token)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
