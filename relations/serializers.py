@@ -51,16 +51,35 @@ class PartnerSerializer(serializers.ModelSerializer):
         fields = "__all__"
         extra_kwargs = {'debt': {'read_only': True}}
 
-    def validate(self, attrs):
-        type_organization = attrs.get('type_organization')
-        supplier = attrs.get('supplier')
-        # Проверяем тип организации и указание поле поставщика
-        if type_organization == 0 and supplier is not None:
+    def validate_supplier(self, supplier):
+        # Проверяем, чтобы у завода не было поставщика
+        # Проверка при создании
+        if self.initial_data.get('type_organization') == 0:
             raise serializers.ValidationError({
                 'supplier': "У завода не может быть поставщика."
             })
+        # Проверка при обновлении
+        if self.instance:
+            if self.instance.type_organization == 0:
+                raise serializers.ValidationError({
+                    'supplier': "У завода не может быть поставщика."
+                })
 
-        return attrs
+        # Проверяем, что партнёр не может быть себе поставщиком.
+        if self.instance:
+            if supplier.id == self.instance.id:
+                raise serializers.ValidationError({
+                    "supplier": "Партнёр не может быть себе поставщиком."})
+        return supplier
+
+    @staticmethod
+    def validate_contact(contact):
+        # Проверяем, что контакт принадлежит только одному партнёру.
+        if Contact.objects.filter(**contact).exists():
+            raise serializers.ValidationError({
+                'contact': "Контакт уже связан с другим поставщиком."
+            })
+        return contact
 
     def create(self, validated_data):
         # Собираем данные с ввода
@@ -68,16 +87,17 @@ class PartnerSerializer(serializers.ModelSerializer):
         products_data = validated_data.pop('products')
 
         # Добавляем объект контакта
-        contact, _ = Contact.objects.get_or_create(**contact_data)
+        contact = Contact.objects.create(**contact_data)
 
         # Создаём объект партнёра
-        partner = Partner.objects.create(**validated_data, contact=contact)
+        partner = Partner.objects.create(**validated_data,
+                                         contact=contact)
 
         # Добавляем объекты продуктов
         for product_data in products_data:
-            product = Product.objects.create(**product_data)  # создаем продукт
+            # Создаем или получаем продукт
+            product, _ = Product.objects.get_or_create(**product_data)
             partner.products.add(product)  # добавляем продукт к партнёру
-
         return partner
 
     def update(self, instance, validated_data):
@@ -115,6 +135,7 @@ class PartnerSerializer(serializers.ModelSerializer):
             for product in current_products:
                 # Проверяем, связан ли продукт с другими партнерами
                 if not product.partner_set.exists():
+                    # Удаляем, если продукт остался без связи
                     product.delete()
 
         instance.save()  # Сохраняем изменения
