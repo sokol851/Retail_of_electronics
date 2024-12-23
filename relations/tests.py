@@ -4,7 +4,8 @@ from django.urls import reverse
 
 from employees.models import Employee
 from relations.models import Contact, Partner, Product
-from relations.serializers import (ProductForPartnerSerializer,
+from relations.serializers import (PartnerSerializer,
+                                   ProductForPartnerSerializer,
                                    ProductSerializer)
 
 
@@ -210,3 +211,126 @@ class PartnerTestCase(TestCase):
         self.assertFalse(serializer.is_valid())
         # Проверяем, что ошибка связана с полем release_date
         self.assertIn('release_date', serializer.errors)
+
+
+class PartnerSerializerTests(TestCase):
+
+    def setUp(self):
+        # Создаем тестовые объекты Contact и Product
+        self.partner = {
+            'name': 'Партнёр',
+            'type_organization': 0,
+            'products': [{'name': 'Стул',
+                          'model': 'Деревянный',
+                          'release_date': '2024-01-01'
+                          }],
+            'contact': {'email': 'i@i.ru',
+                        'country': 'Россия',
+                        'city': 'СПб',
+                        'street': 'Ленина',
+                        'house_number': '10'
+                        },
+            'debt': 0.00
+        }
+
+        self.contact2 = Contact.objects.create(email='a@a.ru',
+                                               country='Россия',
+                                               city='СПб',
+                                               street='Ленина',
+                                               house_number='10')
+        self.partner2 = Partner.objects.create(name='Партнёр2',
+                                               type_organization=1,
+                                               contact=self.contact2)
+
+        self.product2 = Product.objects.create(name='Стул',
+                                               model='Деревянный',
+                                               release_date='2024-01-01')
+        self.partner2.products.add(self.product2)
+
+        self.serializer = PartnerSerializer(data=self.partner)
+
+    def test_create_partner_success(self):
+        # Проверяем успешное создание партнёра
+        self.assertTrue(self.serializer.is_valid())
+        partner = self.serializer.save()
+
+        # Проверяем, что партнёр создан
+        self.assertEqual(partner.name, 'Партнёр')
+        self.assertEqual(partner.contact.email, 'i@i.ru')
+
+    def test_create_validators(self):
+        # Устанавливаем поставщика для завода
+        self.partner['supplier'] = self.partner2.pk
+        # Устанавливаем чужие контакты
+        self.partner['contact'] = {'email': 'a@a.ru',
+                                   'country': 'Россия',
+                                   'city': 'СПб',
+                                   'street': 'Ленина',
+                                   'house_number': '10'
+                                   }
+
+        serializer = PartnerSerializer(data=self.partner)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('supplier', serializer.errors)
+        self.assertIn('contact', serializer.errors)
+
+        # Проверяем отсутствие поставщика у завода
+        self.assertEqual(serializer.errors['supplier'], {
+            'supplier': "У завода не может быть поставщика."
+        })
+        # Проверяем уникальность соответствия контактов
+        self.assertEqual(serializer.errors['contact'], {
+            'contact': "Контакт уже связан с другим поставщиком."
+        })
+
+    def test_update_partner_success(self):
+        # Данные для обновления
+        self.assertTrue(self.serializer.is_valid())
+        partner = self.serializer.save()
+
+        update_data = {
+            'name': 'Партнёр_upd',
+            'type_organization': 1,
+            'products': [{'name': 'Стол',
+                          'model': 'Светлый',
+                          'release_date': '2024-01-05'
+                          }],
+            'contact': {'email': 'u@u.ru',
+                        'country': 'РФ',
+                        'city': 'МСК',
+                        'street': 'Свободы',
+                        'house_number': '11'
+                        },
+            'supplier': partner.pk,
+            'debt': 0.00
+        }
+
+        # Обновляем партнёра
+        serializer = PartnerSerializer(instance=self.partner2,
+                                       data=update_data)
+        self.assertTrue(serializer.is_valid())
+        updated_partner = serializer.save()
+
+        # Проверяем, что данные обновлены
+        self.assertEqual(updated_partner.name, 'Партнёр_upd')
+        self.assertEqual(updated_partner.contact.email, 'u@u.ru')
+
+        # Проверяем, что продукты добавлены
+        self.assertEqual(updated_partner.products.count(), 1)
+
+    def test_update_supplier_fail(self):
+        # Данные для обновления
+        update_data = {
+            'name': 'Партнёр2',
+            'type_organization': 1,
+            'supplier': self.partner2.pk
+        }
+
+        serializer = PartnerSerializer(instance=self.partner2,
+                                       data=update_data)
+        self.assertFalse(serializer.is_valid())
+
+        self.assertIn('supplier', serializer.errors)
+
+        self.assertEqual(serializer.errors['supplier'], {
+            "supplier": "Партнёр не может быть себе поставщиком."})
