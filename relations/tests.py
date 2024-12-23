@@ -31,6 +31,11 @@ class PartnerAdminTests(TestCase):
                                               city='СПб',
                                               street='Ленина',
                                               house_number='10')
+        self.contact2 = Contact.objects.create(email='a@a.ru',
+                                               country='Россия',
+                                               city='СПб',
+                                               street='Ленина',
+                                               house_number='10')
 
         # Создаём продукт
         self.product = Product.objects.create(name='Стул',
@@ -43,6 +48,13 @@ class PartnerAdminTests(TestCase):
             type_organization=0,
             contact=self.contact,
             debt=100.10
+        )
+        self.partner2 = Partner.objects.create(
+            name='Партнёр2',
+            type_organization=1,
+            contact=self.contact2,
+            supplier=self.partner,
+            debt=0.0
         )
         self.partner.products.add(self.product)
 

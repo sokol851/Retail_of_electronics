@@ -45,8 +45,8 @@ class Partner(models.Model):
                             verbose_name='Название')
     type_organization = models.IntegerField(choices=TYPE_ORGANIZATIONS,
                                             verbose_name='Тип организации')
-    contact = models.ForeignKey(Contact, on_delete=models.CASCADE,
-                                verbose_name='Контакты')
+    contact = models.OneToOneField(Contact, on_delete=models.PROTECT,
+                                   verbose_name='Контакты')
     supplier = models.ForeignKey("self",
                                  on_delete=models.SET_NULL,
                                  null=True, blank=True,
