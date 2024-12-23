@@ -83,8 +83,34 @@ class PartnerSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Собираем данные с ввода
-        contact_data = validated_data.pop('contact')
-        products_data = validated_data.pop('products')
+        try:
+            contact_data = validated_data.pop('contact')
+        except Exception:
+            raise serializers.ValidationError(
+                {'Не указаны контакты в формате': {'contact': {
+                    'email': 'None',
+                    'country': 'None',
+                    'city': 'None',
+                    'street': 'None',
+                    'house_number': 'None'}
+                }})
+        try:
+            products_data = validated_data.pop('products')
+            if not products_data:
+                raise serializers.ValidationError(
+                    'Список продуктов не может быть пустым')
+        except Exception:
+            raise serializers.ValidationError(
+                {'Не указаны продукты в формате': {'products': [
+                    {'name': 'Product1',
+                     'model': 'v.1',
+                     'release_date':
+                         '2024-01-01'},
+                    {'name': 'Product2',
+                     'model': 'v.2',
+                     'release_date':
+                         '2023-12-30'}]
+                }})
 
         # Добавляем объект контакта
         contact = Contact.objects.create(**contact_data)
@@ -125,7 +151,7 @@ class PartnerSerializer(serializers.ModelSerializer):
             instance.products.clear()
 
             for product_data in products_data:
-                product, created = Product.objects.update_or_create(
+                product, _ = Product.objects.update_or_create(
                     id=product_data.get('id', None),
                     defaults=product_data
                 )
