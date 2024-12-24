@@ -1,3 +1,5 @@
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from relations.models import Contact, Partner, Product
@@ -45,11 +47,20 @@ class PartnerSerializer(serializers.ModelSerializer):
     create_at = serializers.DateTimeField(format="%d.%m.%Y %H:%M",
                                           required=False,
                                           read_only=True)
+    debt = serializers.DecimalField(max_digits=20,
+                                    decimal_places=2,
+                                    default=0,
+                                    read_only=True)
+
+    @extend_schema_field(OpenApiTypes.NUMBER)
+    def get_debt(self):
+        """ Изменяем визуальное отображение поля """
+        return self.debt
 
     class Meta:
         model = Partner
         fields = "__all__"
-        extra_kwargs = {'debt': {'read_only': True}}
+        # extra_kwargs = {'debt': {'read_only': True}}
 
     def validate_supplier(self, supplier):
         # Проверяем, чтобы у завода не было поставщика
@@ -72,13 +83,19 @@ class PartnerSerializer(serializers.ModelSerializer):
                     "supplier": "Партнёр не может быть себе поставщиком."})
         return supplier
 
-    @staticmethod
-    def validate_contact(contact):
+    def validate_contact(self, contact):
         # Проверяем, что контакт принадлежит только одному партнёру.
-        if Contact.objects.filter(**contact).exists():
-            raise serializers.ValidationError({
-                'contact': "Контакт уже связан с другим поставщиком."
-            })
+        if self.instance:
+            if Contact.objects.filter(**contact).exclude(
+                    pk=self.instance.contact.pk).exists():
+                raise serializers.ValidationError({
+                    'contact': "Контакт уже связан с другим поставщиком."
+                })
+        else:
+            if Contact.objects.filter(**contact).exists():
+                raise serializers.ValidationError({
+                    'contact': "Контакт уже связан с другим поставщиком."
+                })
         return contact
 
     def create(self, validated_data):
