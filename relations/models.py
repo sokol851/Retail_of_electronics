@@ -1,14 +1,14 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 NULLABLE = {"null": True, "blank": True}
 
 
 class Contact(models.Model):
-    email = models.EmailField(verbose_name='Почта')
+    email = models.EmailField(max_length=50, verbose_name='Почта')
     country = models.CharField(max_length=75, verbose_name='Страна')
     city = models.CharField(max_length=75, verbose_name='Город')
     street = models.CharField(max_length=75, verbose_name='Улица')
@@ -43,8 +43,13 @@ class Partner(models.Model):
     name = models.CharField(max_length=150,
                             unique=True,
                             verbose_name='Название')
-    type_organization = models.IntegerField(choices=TYPE_ORGANIZATIONS,
-                                            verbose_name='Тип организации')
+    type_organization = models.SmallIntegerField(choices=TYPE_ORGANIZATIONS,
+                                                 validators=[
+                                                     MaxValueValidator(2),
+                                                     MinValueValidator(0)
+                                                 ],
+                                                 verbose_name='Тип организации'
+                                                 )
     contact = models.OneToOneField(Contact, on_delete=models.PROTECT,
                                    verbose_name='Контакты')
     supplier = models.ForeignKey("self",
